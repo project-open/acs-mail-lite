@@ -19,7 +19,7 @@ namespace eval acs_mail_lite {
     } {
         set domain [parameter::get_from_package_key -package_key "acs-mail-lite" -parameter "BounceDomain"]
         if { $domain eq "" } {
-	    regsub {http://} [ns_config ns/server/[ns_info server]/module/nssock hostname] {} domain
+	    regsub {http://} [ns_config [ns_driversection -driver nssock] hostname] _ domain
 	}
 	return $domain
     }
@@ -29,21 +29,21 @@ namespace eval acs_mail_lite {
     ad_proc -private load_mails {
         -queue_dir:required
     } {
-        Scans for incoming email. You need
-
-        An incoming email has to comply to the following syntax rule:
-        [<SitePrefix>][-]<ReplyPrefix>-Whatever@<BounceDomain>
+        Scans for incoming email. The function requires
+        incoming emails that comply to the following syntax rule:
+<pre>
+        [&lt;SitePrefix&gt;][-]&lt;ReplyPrefix&gt;-Whatever@&lt;BounceDomain&gt;
 
         [] = optional
         <> = Package Parameters
-
+</pre>
         If no SitePrefix is set we assume that there is only one OpenACS installation. Otherwise
         only messages are dealt with which contain a SitePrefix.
-
+<p>
         ReplyPrefixes are provided by packages that implement the callback acs_mail_lite::incoming_email
         and provide a package parameter called ReplyPrefix. Only implementations are considered where the
         implementation name is equal to the package key of the package.
-
+<p>
         Also we only deal with messages that contain a valid and registered ReplyPrefix.
         These prefixes are automatically set in the acs_mail_lite_prefixes table.
 
@@ -108,7 +108,7 @@ namespace eval acs_mail_lite {
 	    }
 
             #let's delete the file now
-            if {[catch {ns_unlink $msg} errmsg]} {
+            if {[catch {file delete $msg} errmsg]} {
                 ns_log Error "load_mails: unable to delete queued message $msg: $errmsg"
             } else {
 		ns_log Debug "load_mails: deleted $msg"
@@ -164,7 +164,6 @@ namespace eval acs_mail_lite {
 	@creation-date 2005-07-15
 	
     } {
-
 	upvar $array email
 
 	#prepare the message
@@ -173,15 +172,14 @@ namespace eval acs_mail_lite {
 	    set stream [open $file]
 	    set content [read $stream]
 	    close $stream
-	    ns_log error "$content"
-	    ns_unlink $file
+	    ns_log error $content
+	    file delete $file
 	    return
 	}
-
+	
 	#get the content type
 	set content [mime::getproperty $mime content]
-	ns_log NOTICE "incoming-mail-procs::parse_email: Content: $content"
-
+	
 	#get all available headers
 	set keys [mime::getheader $mime -names]
 		
@@ -198,25 +196,19 @@ namespace eval acs_mail_lite {
 		
 	#check for multipart, otherwise we only have one part
 	if { [string first "multipart" $content] != -1 } {
-	    # ns_log NOTICE "incoming-mail-procs::parse_email: Found multipart"
 	    set parts [mime::getproperty $mime parts]
 	} else {
-	    # ns_log NOTICE "incoming-mail-procs::parse_email: Multipart not found"
 	    set parts [list $mime]
 	}
-
+	
 	# travers the tree and extract parts into a flat list
 	set all_parts [list]
-
 	foreach part $parts {
-	    ns_log NOTICE "incoming-mail-procs::parse_email: Centent Property of Part: [mime::getproperty $part content]"
-	    if {[mime::getproperty $part content] eq "multipart/alternative" || [mime::getproperty $part content] eq "multipart/mixed" } {
+	    if {[mime::getproperty $part content] eq "multipart/alternative"} {
 		foreach child_part [mime::getproperty $part parts] {
-		    # ns_log NOTICE "incoming-mail-procs::parse_email: Adding to all_parts (child): $child_part "
 		    lappend all_parts $child_part
 		}
 	    } else {
-		# ns_log NOTICE "incoming-mail-procs::parse_email: Adding to all_parts (main): $part "
 		lappend all_parts $part
 	    }
 	}
@@ -224,52 +216,36 @@ namespace eval acs_mail_lite {
 	set bodies [list]
 	set files [list]
 	
-	foreach part $all_parts {
-	    ns_log NOTICE "incoming-mail-procs::parse_email: CONTENT for $part: [mime::getproperty $part content]"
-	    ns_log NOTICE "incoming-mail-procs::parse_email: BUILDMMESSAGE for $part: [mime::buildmessage $part]"
-	    ns_log NOTICE "incoming-mail-procs::parse_email: CONTENT DISPOSITION: [catch {[mime::getheader $part Content-disposition]} errmsg] { $errmsg }"
-	}
-	
 	#now extract all parts (bodies/files) and fill the email array
 	foreach part $all_parts {
-	    # ns_log NOTICE "incoming-mail-procs::parse_email: Now working on part: $part" 
-
 	    # Attachments have a "Content-disposition" part
 	    # Therefore we filter out if it is an attachment here
-	    
 	    if {[catch {mime::getheader $part Content-disposition}] || [mime::getheader $part Content-disposition] eq "inline"} {
-		# ns_log NOTICE "incoming-mail-procs::parse_email: Entering Bodies .... "
-		if [catch {
-		    switch [mime::getproperty $part content] {
-			"text/plain" {
-			    lappend bodies [list "text/plain" [mime::getbody $part]]
-			}
-			"text/html" {
-			    lappend bodies [list "text/html" [mime::getbody $part]]
-			}
+		switch [mime::getproperty $part content] {
+		    "text/plain" {
+			lappend bodies [list "text/plain" [mime::getbody $part]]
 		    }
-		} errmsg] {
-		    ns_log NOTICE "incoming-mail-procs::parse_email: Error evaluating mail body: $errmsg"
+		    "text/html" {
+			lappend bodies [list "text/html" [mime::getbody $part]]
+		    }
 		}
-
 	    } else {
-		# ns_log NOTICE "incoming-mail-procs::parse_email: Entering Attachments .... " 
 		set encoding [mime::getproperty $part encoding]
 		set body [mime::getbody $part -decode]
 		set content  $body
 		set params [mime::getproperty $part params]
-		# ns_log NOTICE "incoming-mail-procs::parse_email: Params: $params"
 		array set param $params
 
 		# Append the file if there exist a filename to use. Otherwise do not append
-		if {[exists_and_not_null param(name)]} {
+		if {([info exists param(name)] && $param(name) ne "")} {
 		    set filename $param(name)
 
 		    # Determine the content_type
 		    set content_type [mime::getproperty $part content]
 		    if {$content_type eq "application/octet-stream"} {
 			set content_type [ns_guesstype $filename]
-		    }	    
+		    }
+		    
 		    lappend files [list $content_type $encoding $filename $content]
 		}
 	    }
@@ -280,7 +256,6 @@ namespace eval acs_mail_lite {
 	
 	#release the message
 	mime::finalize $mime -subordinates all
-
     }    
 
     ad_proc -public autoreply_p {
