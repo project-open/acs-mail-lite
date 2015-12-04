@@ -156,9 +156,9 @@ namespace eval acs_mail_lite {
 	}
 
         ns_log Debug "send cmd: $cmd"
-        if {[catch $cmd errorInfo]} {
-	    ns_log Error "acs-mail-lite::smtp: error $errorInfo while executing\n$cmd"
-	    error $errorInfo
+        if {[catch $cmd errorMsg]} {
+	    ns_log Error "acs-mail-lite::smtp: error $errorMsg while executing\n$cmd"
+	    error $errorMsg
 	}
     }
 
@@ -460,7 +460,7 @@ namespace eval acs_mail_lite {
 
             db_foreach get_file_info {} {
                 lappend tokens [mime::initialize \
-                                    -param [list name [ad_quotehtml $title]] \
+                                    -param [list name [ns_quotehtml $title]] \
                                     -header [list "Content-Disposition" "attachment; filename=\"$name\""] \
                                     -header [list Content-Description $title] \
                                     -canonical $mime_type \
@@ -702,3 +702,9 @@ namespace eval acs_mail_lite {
     }
 
 }
+
+# Local variables:
+#    mode: tcl
+#    tcl-indent-level: 4
+#    indent-tabs-mode: nil
+# End:
