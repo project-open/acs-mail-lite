@@ -421,7 +421,6 @@ namespace eval acs_mail_lite {
         # Decide which sender to use
         set fixed_sender [parameter::get -parameter "FixedSenderEmail" \
                               -package_id $mail_package_id]
-
         
         if { $fixed_sender ne "" && !$use_sender_p} {
             set from_addr $fixed_sender
@@ -592,6 +591,12 @@ namespace eval acs_mail_lite {
         set originator [bounce_address -user_id $rcpt_id \
                             -package_id $package_id \
                             -message_id $message_id]
+        
+        # fraber 2016-11-02: Overwrite fixed_sender in case we got
+        # issues with corporate mail gateways etc.
+        if { $fixed_sender ne ""} {
+            set originator $fixed_sender
+        }
 
 
         if { $send_mode eq "log" } {
