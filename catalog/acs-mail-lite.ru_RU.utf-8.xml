@@ -2,11 +2,11 @@
 <message_catalog package_key="acs-mail-lite" locale="ru_RU" charset="utf-8">
 
   <msg key="Associated_files">Связанные файлы:</msg>
-  <msg key="BCC">&#34;Слепая копия&#34;</msg>
+  <msg key="BCC">&quot;Слепая копия&quot;</msg>
   <msg key="Bounce_disabled">Повторные ошибочные электронные почтовые сообщения записаны как отключенные. Вы будете получать электронные почтовые сообщения снова.</msg>
   <msg key="Bouncing_users">Адресаты повторных ошибочных электронных почтовых сообщений</msg>
   <msg key="CC">Копия</msg>
-  <msg key="cc_help">Отправить копию по нескольким адресам, разделённым с помощью &#34;;&#34;</msg>
+  <msg key="cc_help">Отправить копию по нескольким адресам, разделённым с помощью &quot;;&quot;</msg>
   <msg key="check_uncheck">Проверять/Не проверять</msg>
   <msg key="lt_there_was_an_error_processing">Произошла ошибка в обработке этого запроса.</msg>
   <msg key="Message">Сообщение</msg>

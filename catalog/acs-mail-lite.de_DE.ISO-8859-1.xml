@@ -3,8 +3,6 @@
 
   <msg key="Associated_files">Verknüpfte Dateien:</msg>
   <msg key="BCC">BCC</msg>
-  <msg key="Bounce_disabled">Bouncing abgestellt. Sie bekommen wieder normal Email</msg>
-  <msg key="Bouncing_users">Bouncende Benutzer</msg>
   <msg key="CC">CC</msg>
   <msg key="cc_help">Liste von E-Mail Adressen durch &#34;;&#34; getrennt an die eine Kopie der E-Mail geschickt werden soll.</msg>
   <msg key="check_uncheck">Alle/Keine auswählen</msg>
@@ -16,7 +14,6 @@
   <msg key="Send">Senden</msg>
   <msg key="Sender">Absender</msg>
   <msg key="Subject">Betreff</msg>
-  <msg key="Unbounce">Unbounce</msg>
   <msg key="Untitled">Unbenannt</msg>
   <msg key="Upload_file">Datei hinzufügen</msg>
   <msg key="Your_message_was_sent_to">Ihre Nachricht wurde an die folgende Empfänger geschickt: %recipients%</msg>

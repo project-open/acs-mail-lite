@@ -329,6 +329,7 @@ namespace eval acs_mail_lite {
                             -subject $subject \
                             -body $body \
                             -package_id $package_id \
+                            -object_id $object_id \
                             -file_ids $file_ids \
                             -filesystem_files $filesystem_files \
                             -delete_filesystem_files_p $delete_filesystem_files_p \
@@ -421,6 +422,7 @@ namespace eval acs_mail_lite {
         # Decide which sender to use
         set fixed_sender [parameter::get -parameter "FixedSenderEmail" \
                               -package_id $mail_package_id]
+
         
         if { $fixed_sender ne "" && !$use_sender_p} {
             set from_addr $fixed_sender
@@ -591,14 +593,16 @@ namespace eval acs_mail_lite {
         set originator [bounce_address -user_id $rcpt_id \
                             -package_id $package_id \
                             -message_id $message_id]
+
+         # fraber 2016-11-02: Overwrite fixed_sender in case we got
+         # issues with corporate mail gateways etc.
+         if { $fixed_sender ne ""} {
+             set originator $fixed_sender
+         }
+
+        set errorMsg ""
+        set status ok
         
-        # fraber 2016-11-02: Overwrite fixed_sender in case we got
-        # issues with corporate mail gateways etc.
-        if { $fixed_sender ne ""} {
-            set originator $fixed_sender
-        }
-
-
         if { $send_mode eq "log" } {
 
             # Add recipients to headers
@@ -616,10 +620,12 @@ namespace eval acs_mail_lite {
             ns_log Notice "acs-mail-lite::send: $notice\n\n**********\nEnvelope sender: $originator\n\n$packaged\n**********"
 
         } else {
-
-            acs_mail_lite::smtp -multi_token $tokens \
-                -headers $headers_list \
-                -originator $originator
+            
+            if {[catch {acs_mail_lite::smtp -multi_token $tokens \
+                       -headers $headers_list \
+                            -originator $originator} errorMsg]} {
+                set status error
+            }
             
             # Close all mime tokens
             mime::finalize $tokens -subordinates all
@@ -640,7 +646,9 @@ namespace eval acs_mail_lite {
                 -file_ids $file_ids \
                 -filesystem_files $filesystem_files \
                 -delete_filesystem_files_p $delete_filesystem_files_p \
-                -object_id $object_id
+                -object_id $object_id \
+                -status $status \
+                -errorMsg $errorMsg
         }
         
 	# Attachment files can now be deleted, if so required.
@@ -648,9 +656,12 @@ namespace eval acs_mail_lite {
 	# could need to look at files for their own purposes.
         if {[string is true $delete_filesystem_files_p]} {
 	    foreach f $filesystem_files {
-		file delete $f
+		file delete -- $f
 	    }
 	}
+        if {$status ne "ok"} {
+            error $errorMsg
+        }
     }
 
     #---------------------------------------
@@ -683,7 +694,7 @@ namespace eval acs_mail_lite {
         {bcc {}}
     } {
 
-        Replacement for ns_sendmail for backward compability.
+        Replacement for ns_sendmail for backward compatibility.
 
     } {
 
